@@ -100,7 +100,7 @@ def handle_client(conn, client_conn, client_addr):
         # Une fois connecté, l'utilisateur peut choisir ses actions
         while True:
             send_message(client_conn,
-                         "\nOptions:\n1. Voir les salles de chat\n2. Choisir une salle de chat\n3. Afficher les messages\n4. Envoyer un message\n5. Quitter\nChoisissez une option: ")
+                         "\nOptions:\n1. Rejoindre une salle de chat\n2. Choisir une salle de chat\n3. Afficher les messages\n4. Envoyer un message\n5. Quitter\nChoisissez une option: ")
             option = receive_message(client_conn)
 
             if option == '1':
@@ -142,11 +142,14 @@ def handle_join_room(client_socket, conn,user_id):
         client_socket.sendall(b"Enter Chat Room Code: ")
         room_code = client_socket.recv(1024).decode().strip()
 
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ChatRoom WHERE id = ? AND code = ?", (room_id, room_code))
+        database = sqlite3.connect('chatroom.db')
+        cursor = database.cursor()
+        cursor.execute("SELECT * FROM ChatRooms WHERE room_id = ? AND code = ?", (room_id, room_code))
         chatroom = cursor.fetchone()
 
         if chatroom:
+            cursor.execute("INSERT INTO UserChatRooms (user_id, room_id) VALUES (?, ?)", (user_id, room_id))
+            database.commit()
             client_socket.sendall(b"Successfully joined the chat room!\n")
             return chatroom
         else:
@@ -322,7 +325,6 @@ def populate_database():
     """ Ajoute des données initiales à la base de données. """
     conn = sqlite3.connect('chatroom.db')
     cursor = conn.cursor()
-
     try:
         # Ajout de quelques utilisateurs de test
         users = [
@@ -334,7 +336,7 @@ def populate_database():
 
         # Ajout de quelques salles de chat
         chatrooms = [
-            ('General Chat', 'Chat général pour tous les utilisateurs.'),
+            ('General Chat', 'Chat général pour tous les utilisateurs.',),
             ('Tech Talk', 'Discussions sur la technologie.'),
             ('Random', 'Discussions variées et hors sujet.')
         ]
@@ -366,6 +368,21 @@ def populate_database():
 
         conn.commit()
         print("Base de données peuplée avec succès !")
+        # insert "password" column in the chatrooms table
+        cursor.execute("ALTER TABLE ChatRooms ADD COLUMN code TEXT")
+        conn.commit()
+        # insert "password" value in the chatrooms table
+        cursor.execute("UPDATE ChatRooms SET code = '1234' WHERE room_id = 1")
+        cursor.execute("UPDATE ChatRooms SET code = '5678' WHERE room_id = 2")
+        cursor.execute("UPDATE ChatRooms SET code = '0000' WHERE room_id = 3")
+        conn.commit()
+        #Delete unused tables
+        cursor.execute("DROP TABLE IF EXISTS UserChatRoom")
+        cursor.execute("DROP TABLE IF EXISTS ChatRoom")
+        cursor.execute("DROP TABLE IF EXISTS Message")
+        cursor.execute("DROP TABLE IF EXISTS User")
+        conn.commit()
+
 
     except sqlite3.Error as e:
         print(f"Erreur lors du peuplement de la base de données: {e}")
