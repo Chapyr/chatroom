@@ -5,6 +5,7 @@ import time
 import tkinter as tk
 from datetime import datetime
 from tkinter import scrolledtext, messagebox, Listbox
+import multiprocessing
 
 message_by_room = {}
 class SecureChatClient:
@@ -38,6 +39,7 @@ class SecureChatClient:
         self.ssl_sock.connect(self.server_address)
 
         # Start a thread to listen for messages from the server
+        thread = multiprocessing.Process(target=self.listen_for_messages, args=(1,)).start()
         # Create initial page
         self.create_initial_page()
 
@@ -134,6 +136,7 @@ class SecureChatClient:
         """Sends a request to the server."""
         try:
             self.listening = False
+            thread.terminate()
             print(f"Sending request: {request} : listening : {self.listening}")
             self.ssl_sock.sendall(request.encode())
         except Exception as e:
@@ -145,7 +148,7 @@ class SecureChatClient:
             response = self.ssl_sock.recv(1024).decode().strip()
             print(f"Received response: {response}")
             self.listening = True
-            threading.Thread(target=self.listen_for_messages, args=(1,), daemon=True).start()
+            thread = multiprocessing.Process(target=self.listen_for_messages, args=(1,)).start()
             return response
         except Exception as e:
             print(f"Error receiving response: {e}")
@@ -220,7 +223,6 @@ class SecureChatClient:
                     self.create_chatroom()
                     self.retrieve_room_history()
                     #Create a thread that update history every 2 seconds :
-                    threading.Thread(target=self.listen_for_messages, args=(1,), daemon=True).start()
                 else:
                     messagebox.showerror("Error", "Incorrect Room Password")
 
