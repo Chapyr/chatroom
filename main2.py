@@ -16,12 +16,12 @@ def send_verification_code(email, code):
     msg = EmailMessage()
     msg.set_content(f"Your verification code is: {code}")
     msg['Subject'] = 'Your Verification Code'
-    msg['From'] = "your-email@example.com"
+    msg['From'] = "ChatSec"
     msg['To'] = email
 
     # Send the message via our own SMTP server.
-    server = smtplib.SMTP_SSL('smtp.example.com', 465)
-    server.login("your-email@example.com", "your-password")
+    server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+    server.login("cf.etudiant@gmail.com", "pdhm sapa cudg lgam")
     server.send_message(msg)
     server.quit()
 
@@ -197,6 +197,8 @@ def start_server():
         client_socket, addr = server_socket.accept()
         client_thread = threading.Thread(target=handle_client, args=(client_socket, addr))
         client_thread.start()
+    
 
 if __name__ == "__main__":
     start_server()
+    
